@@ -1,13 +1,16 @@
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:qr_test/screen/dashboard.dart';
+import 'package:qr_test/screen/dashboard_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:get/get.dart';
 
+import '../controller/login_controller.dart';
 import '../transition/enum.dart';
 import '../transition/page_transition.dart';
+import '../utils/common.dart';
 
 class WebViewExample extends StatefulWidget {
   String url;
@@ -17,12 +20,19 @@ class WebViewExample extends StatefulWidget {
 }
 
 class _WebViewExampleState extends State<WebViewExample> {
+  final loginController = Get.put(LoginController());
   late final WebViewController _controller;
+
+  String sessionToken= "";
+  void getData() async {
+    sessionToken= await Common.getShareData("token");
+    log("check_login_token: $sessionToken");
+  }
 
   @override
   void initState() {
     super.initState();
-
+    getData();
     // #docregion platform_features
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -34,7 +44,8 @@ class _WebViewExampleState extends State<WebViewExample> {
       params = const PlatformWebViewControllerCreationParams();
     }
 
-    final WebViewController controller = WebViewController.fromPlatformCreationParams(params);
+    final WebViewController controller =
+        WebViewController.fromPlatformCreationParams(params);
     // #enddocregion platform_features
 
     controller
@@ -43,13 +54,14 @@ class _WebViewExampleState extends State<WebViewExample> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
-            debugPrint('WebView is loading (progress : $progress%)');
+            debugPrint('webview_progress : $progress%');
           },
           onPageStarted: (String url) {
-            debugPrint('Page started loading: $url');
+            debugPrint('webview_loading: $url');
           },
           onPageFinished: (String url) {
-            debugPrint('Page finished loading: $url');
+            debugPrint('Pwebview_loaded: $url');
+            loginController.isPageLoaded.value = true;
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('''
@@ -81,12 +93,16 @@ Page resource error:
           );
         },
       )
-      ..loadRequest(Uri.parse(widget.url));
+      ..loadRequest(
+        Uri.parse(widget.url),
+        headers: {"Authorization": "Bearer $sessionToken"},
+      );
 
     // #docregion platform_features
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
-      (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
+      (controller.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
     }
     // #enddocregion platform_features
 
@@ -98,35 +114,26 @@ Page resource error:
     return Scaffold(
       backgroundColor: Colors.green,
       appBar: AppBar(
+        elevation: 0.0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_outlined),
+          onPressed: () async {
+            Navigator.of(context, rootNavigator: true).pushReplacement(
+                PageTransition(
+                    child: DashboardScreen(),
+                    type: PageTransitionType.rightToLeft));
+          },
+        ),
         title: const Text('WebView'),
-        // This drop down menu demonstrates that Flutter widgets can be shown over the web view.
         actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.arrow_back_outlined),
-            onPressed: () async {
-              Navigator.of(context, rootNavigator: true).pushReplacement(PageTransition(
-                  child: const Dashboard(), type: PageTransitionType.leftToRight));
-            },
-          ),
           NavigationControls(webViewController: _controller),
         ],
       ),
-      body: WebViewWidget(controller: _controller),
-      floatingActionButton: favoriteButton(),
-    );
-  }
-
-  Widget favoriteButton() {
-    return FloatingActionButton(
-      onPressed: () async {
-        final String? url = await _controller.currentUrl();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Favorited $url')),
-          );
-        }
-      },
-      child: const Icon(Icons.favorite),
+      body: Obx(() => Stack(children: [
+            WebViewWidget(controller: _controller),
+            if (!loginController.isPageLoaded.value)
+              const Center(child: CircularProgressIndicator())
+          ])),
     );
   }
 }
