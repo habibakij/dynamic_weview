@@ -75,6 +75,7 @@ class Common {
 
   static Future<String> getShareData(String key) async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    return sharedPreferences.getString(key)!;
+    String data = sharedPreferences.getString(key) ?? "";
+    return data;
   }
 }

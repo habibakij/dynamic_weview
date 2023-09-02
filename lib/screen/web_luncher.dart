@@ -23,9 +23,9 @@ class _WebViewExampleState extends State<WebViewExample> {
   final loginController = Get.put(LoginController());
   late final WebViewController _controller;
 
-  String sessionToken= "";
+  String sessionToken = "";
   void getData() async {
-    sessionToken= await Common.getShareData("token");
+    sessionToken = await Common.getShareData("token");
     log("check_login_token: $sessionToken");
   }
 
@@ -51,6 +51,7 @@ class _WebViewExampleState extends State<WebViewExample> {
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
+      ..enableZoom(true)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
