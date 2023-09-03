@@ -34,7 +34,7 @@ class LoginController extends GetxController {
       Common.customToast("Login failed", 1);
     } else {
       Navigator.of(context, rootNavigator: true).pushReplacement(PageTransition(
-          child: DashboardScreen(), type: PageTransitionType.rightToLeft));
+          child: DashboardScreen(token.value), type: PageTransitionType.rightToLeft));
     }
   }
 

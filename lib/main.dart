@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:qr_test/utils/common.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -24,8 +25,8 @@ class MyApp extends StatelessWidget {
       initialRoute: Common.loginScreen,
       getPages: [
         GetPage(name: Common.loginScreen, page: () => LoginScreen()),
-        GetPage(name: Common.dashboardScreen, page: () => DashboardScreen()),
-        GetPage(name: Common.qrScreen, page: () => QRScreen(0)),
+        GetPage(name: Common.dashboardScreen, page: () => DashboardScreen("")),
+        GetPage(name: Common.qrScreen, page: () => QRScreen(0,"")),
       ],
       builder: EasyLoading.init(),
     );

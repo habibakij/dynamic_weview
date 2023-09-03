@@ -1,4 +1,7 @@
+import 'package:delayed_display/delayed_display.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:qr_test/screen/login_screen.dart';
 import 'package:qr_test/screen/qr_screen.dart';
 import 'package:hexcolor/hexcolor.dart';
 import '../controller/login_controller.dart';
@@ -7,9 +10,11 @@ import '../transition/page_transition.dart';
 import 'package:get/get.dart';
 
 import '../utils/common.dart';
+import '../utils/style_management.dart';
 
 class DashboardScreen extends StatefulWidget {
-  DashboardScreen({Key? key}) : super(key: key);
+  String token;
+  DashboardScreen(this.token, {Key? key}) : super(key: key);
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -27,7 +32,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontSize: 20, color: Colors.white),
         ),
       ),
-      body: QRScreen(0),
+      body: QRScreen(0, widget.token),
 
       /*Column(
         children: [
@@ -69,21 +74,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (await loginController.checkConnection()) {
                   Navigator.pop(context);
                   Navigator.of(context, rootNavigator: true).pushReplacement(
-                      PageTransition(
-                          child: QRScreen(1),
-                          type: PageTransitionType.leftToRight));
+                      PageTransition(child: QRScreen(1, widget.token), type: PageTransitionType.leftToRight));
                 } else {
                   Navigator.pop(context);
-                  Common.showSnackBar(
-                      context, "Please check your internet connection");
+                  Common.showSnackBar(context, "Please check your internet connection");
                 }
-              },
-            ),
-            const Divider(color: Colors.grey),
-            ListTile(
-              title: const Text('About'),
-              onTap: () {
-                Navigator.pop(context);
               },
             ),
             const Divider(color: Colors.grey),
@@ -94,9 +89,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
             const Divider(color: Colors.grey),
+            ListTile(
+              title: const Text('Logout'),
+              onTap: () {
+                Navigator.pop(context);
+                _logoutDialog(context);
+              },
+            ),
+            const Divider(color: Colors.grey),
           ],
         ),
       ),
     );
+  }
+  void _logoutDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return DelayedDisplay(
+            delay: const Duration(microseconds: 500),
+            child: CupertinoAlertDialog(
+              title: const Column(
+                children:  <Widget>[
+                  Text("Log out", style: StyleManagement.testStyleBlackBold18),
+                  SizedBox(height: 10)
+                ],
+              ),
+              content: const Text("Are you sure ?", style: StyleManagement.testStyleBlack14),
+
+              actions: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    InkWell(
+                      child: Container(
+                        height: 30.0,
+                        width: 50.0,
+                        alignment: Alignment.center,
+                        child: const Text("NO", style: StyleManagement.testStyleBlueBold14),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    Container(
+                      height: 50.0,
+                      width: 1.0,
+                      color: Colors.grey,
+                    ),
+                    InkWell(
+                      child: Container(
+                        height: 30.0,
+                        width: 50.0,
+                        alignment: Alignment.center,
+                        child: const Text("YES", style: StyleManagement.testStyleBlueBold14),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Common.clearSharedData();
+                        Navigator.of(context, rootNavigator: true).pushReplacement(
+                            PageTransition(child: LoginScreen(), type: PageTransitionType.rightToLeft));
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
   }
 }

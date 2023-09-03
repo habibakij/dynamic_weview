@@ -35,13 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
     String currentData = DateFormat("yyyy-MM-dd").format(DateTime.now());
     String token= await Common.getShareData("token");
     String oldDate= await Common.getShareData("currentData");
-    log("your token: $token oldDate: $oldDate currentData: $currentData");
-
+    log("your_token: $token oldDate: $oldDate currentData: $currentData");
     if(oldDate.compareTo(currentData) < 0){
       log("please log in");
     } else {
-      Navigator.of(context, rootNavigator: true).pushReplacement(PageTransition(
-          child: DashboardScreen(), type: PageTransitionType.rightToLeft));
+      Navigator.of(context, rootNavigator: true).pushReplacement(PageTransition(child: DashboardScreen(token), type: PageTransitionType.rightToLeft));
     }
   }
 
@@ -68,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           textAlign: TextAlign.center,
                           style: StyleManagement.testStyleBlackBold24),
                     ),
-                    //SizedBox(height: 20),
                     Image.asset(
                       "assets/images/nmst_logo.png",
                       height: 200,
@@ -107,8 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Container(
                           height: 70,
-                          margin: const EdgeInsets.only(
-                              left: 10, right: 10, top: 5),
+                          margin: const EdgeInsets.only(left: 10, right: 10, top: 5),
                           child: Obx(() => TextFormField(
                                 controller: _passwordController,
                                 obscureText: appController.isVisibile.value,
@@ -117,16 +113,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   border: InputBorder.none,
                                   filled: true,
                                   fillColor: Colors.white,
-                                  prefixIcon: Icon(Icons.vpn_key,
-                                      color: Colors.blue[800]),
+                                  prefixIcon: Icon(Icons.vpn_key, color: Colors.blue[800]),
                                   suffixIcon: IconButton(
                                     icon: appController.isVisibile.value
                                         ? const Icon(Icons.visibility_outlined)
-                                        : const Icon(
-                                            Icons.visibility_off_outlined),
+                                        : const Icon(Icons.visibility_off_outlined),
                                     onPressed: () {
-                                      appController.isVisibile.value =
-                                          !appController.isVisibile.value;
+                                      appController.isVisibile.value = !appController.isVisibile.value;
                                     },
                                   ),
                                 ),
@@ -141,33 +134,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               side: BorderSide.none,
-                              textStyle: const TextStyle(
-                                  fontSize: 30, fontWeight: FontWeight.bold),
+                              textStyle: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(12), // <-- Radius
+                                borderRadius: BorderRadius.circular(12), // <-- Radius
                               ),
                             ),
                             child: const Text(
                               "Sign In",
-                              style:
-                                  TextStyle(fontSize: 20, color: Colors.white),
+                              style: TextStyle(fontSize: 20, color: Colors.white),
                             ),
                             onPressed: () async {
                               if (_emailController.text.toString().isEmpty) {
-                                Common.showSnackBar(
-                                    context, "Please enter email");
+                                Common.showSnackBar(context, "Please enter email");
                               } else if (_passwordController.text
                                   .toString()
                                   .isEmpty) {
                                 Common.showSnackBar(
                                     context, "Please enter password");
-                              } else if (_passwordController.text
-                                      .toString()
-                                      .length <
-                                  5) {
-                                Common.showSnackBar(
-                                    context, "Password at least 6 char long");
+                              } else if (_passwordController.text.toString().length < 5) {
+                                Common.showSnackBar(context, "Password at least 6 char long");
                               } else {
                                 if (await appController.checkConnection()) {
                                   appController.getUserAuthentication(

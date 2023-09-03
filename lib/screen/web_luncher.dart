@@ -1,20 +1,22 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:qr_test/screen/dashboard_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:get/get.dart';
-
 import '../controller/login_controller.dart';
 import '../transition/enum.dart';
 import '../transition/page_transition.dart';
 import '../utils/common.dart';
 
 class WebViewExample extends StatefulWidget {
-  String url;
-  WebViewExample(this.url, {super.key});
+  String url, token;
+  WebViewExample(this.url, this.token, {super.key});
   @override
   State<WebViewExample> createState() => _WebViewExampleState();
 }
@@ -23,17 +25,16 @@ class _WebViewExampleState extends State<WebViewExample> {
   final loginController = Get.put(LoginController());
   late final WebViewController _controller;
 
-  String sessionToken = "";
+/*String sessionToken = "";
   void getData() async {
     sessionToken = await Common.getShareData("token");
     log("check_login_token: $sessionToken");
-  }
+  }*/
 
   @override
   void initState() {
     super.initState();
-    getData();
-    // #docregion platform_features
+    //getData();
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
       params = WebKitWebViewControllerCreationParams(
@@ -43,11 +44,7 @@ class _WebViewExampleState extends State<WebViewExample> {
     } else {
       params = const PlatformWebViewControllerCreationParams();
     }
-
-    final WebViewController controller =
-        WebViewController.fromPlatformCreationParams(params);
-    // #enddocregion platform_features
-
+    final WebViewController controller = WebViewController.fromPlatformCreationParams(params);
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
@@ -96,47 +93,128 @@ Page resource error:
       )
       ..loadRequest(
         Uri.parse(widget.url),
-        headers: {"Authorization": "Bearer $sessionToken"},
+        headers: {"Authorization": "Bearer ${widget.token}"},
       );
-
-    // #docregion platform_features
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
       (controller.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
     }
-    // #enddocregion platform_features
-
     _controller = controller;
   }
+
+  late InAppWebViewController webView;
+  double _zoomLevel = 1.0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         elevation: 0.0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_outlined),
           onPressed: () async {
-            Navigator.of(context, rootNavigator: true).pushReplacement(
-                PageTransition(
-                    child: DashboardScreen(),
-                    type: PageTransitionType.rightToLeft));
+            Navigator.of(context, rootNavigator: true).pushReplacement(PageTransition(child: DashboardScreen(widget.token), type: PageTransitionType.rightToLeft));
           },
         ),
-        title: const Text('WebView'),
+        title: const Text('Ticket Scan'),
         actions: <Widget>[
           NavigationControls(webViewController: _controller),
         ],
       ),
-      body: Obx(() => Stack(children: [
-            WebViewWidget(controller: _controller),
-            if (!loginController.isPageLoaded.value)
-              const Center(child: CircularProgressIndicator())
-          ])),
+      body: Column(
+        children: [
+          Expanded(
+            child: InAppWebView(
+              initialUrlRequest: URLRequest(url: Uri.parse(widget.url), headers: {"Authorization": "Bearer ${widget.token}"},),
+              onWebViewCreated: (controller) {
+                webView = controller;
+              },
+              onLoadStop: (controller, url) {
+                log("loading_web: $url");
+              },
+              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+              },
+            ),
+          ),
+          const SizedBox(height: 5.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FloatingActionButton(
+                onPressed: () {
+                  _zoomLevel += 0.1;
+                  zoomWebView(_zoomLevel);
+                },
+                child: const Icon(Icons.add, size: 30,),
+              ),
+              const SizedBox(width: 16.0),
+              FloatingActionButton(
+                onPressed: () {
+                  _zoomLevel -= 0.1;
+                  zoomWebView(_zoomLevel);
+                },
+                child: const Icon(Icons.remove, size: 30,),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10.0),
+        ],
+      ),
+
+      /*body: Column(
+        children: [
+          Expanded(
+            child: Obx(() => Stack(children: [
+              WebViewWidget(
+                controller: _controller,
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer(),
+                  ),
+                },
+              ),
+              if (!loginController.isPageLoaded.value)
+                const Center(child: CircularProgressIndicator())
+            ])),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FloatingActionButton(
+                onPressed: () {
+                  // Zoom in
+                  _zoomLevel += 0.1; // You can adjust the zoom level increment as needed
+                  _controller.zoomBy(_zoomLevel);
+                },
+                child: Icon(Icons.zoom_in),
+              ),
+              SizedBox(width: 16.0), // Add some spacing between the buttons
+              FloatingActionButton(
+                onPressed: () {
+                  // Zoom out
+                  _zoomLevel -= 0.1; // You can adjust the zoom level decrement as needed
+                  _controller.zoomBy(_zoomLevel);
+                },
+                child: Icon(Icons.zoom_out),
+              ),
+            ],
+          ),
+        ],
+      ),*/
+
+
     );
   }
+  void zoomWebView(double zoomLevel) {
+    final script = """
+      document.body.style.zoom = '$zoomLevel';
+    """;
+    webView.evaluateJavascript(source: script);
+  }
+
 }
 
 class NavigationControls extends StatelessWidget {
